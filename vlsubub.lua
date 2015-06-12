@@ -66,6 +66,7 @@ local options = {
     int_help = 'Help',
     int_search_hash = 'Search by hash',
     int_search_name = 'Search by name',
+    int_do_all = 'Get me subtitles',
     int_title = 'Title',
     int_season = 'Season (series)',
     int_episode = 'Episode (series)',
@@ -326,11 +327,11 @@ local select_conf = {} -- Drop down widget / option table association
 
 function descriptor()
   return { 
-    title = "VLsub 0.9.13",
-    version = "0.9.13",
+    title = "VLsubub 0.0.1",
+    version = "0.0.1",
     author = "exebetche",
     url = 'http://www.opensubtitles.org/',
-    shortdesc = "VLsub";
+    shortdesc = "VLsub turned to 11.";
     description = options.translation.int_descr,
     capabilities = {"menu", "input-listener" }
   }
@@ -350,10 +351,11 @@ function activate()
   end
   
   show_main()
+  doAll()
 end
 
 function close()
-  vlc.deactivate()
+    vlc.extension():deactivate()
 end
 
 function deactivate()
@@ -398,6 +400,8 @@ function interface_main()
     openSub.movie.title or "", 2, 2, 2, 1)
   dlg:add_button(lang["int_search_name"], 
     searchIMBD, 4, 2, 1, 1)
+  dlg:add_button(lang["int_do_all"], 
+    doAll, 4, 3, 1, 1)
   dlg:add_label(lang["int_season"]..':', 1, 3, 1, 1)
   input_table['seasonNumber'] = dlg:add_text_input(
     openSub.movie.seasonNumber or "", 2, 3, 2, 1)
@@ -412,7 +416,7 @@ function interface_main()
   dlg:add_button(
     '   '..lang["int_show_conf"]..'   ', show_conf, 2, 7, 1, 1)
   dlg:add_button(
-    lang["int_dowload_sel"], download_subtitles, 3, 7, 1, 1)
+    lang["int_dowload_sel"], download_selected_subtitle, 3, 7, 1, 1)
   dlg:add_button(
     lang["int_close"], deactivate, 4, 7, 1, 1) 
   
@@ -1605,9 +1609,6 @@ function searchHash()
 end
 
 
-function searchAndDownload()
-    serachIMBD()
-end
 function searchIMBD()
   openSub.movie.title = trim(input_table["title"]:get_text())
   openSub.movie.seasonNumber = tonumber(
@@ -1657,7 +1658,8 @@ function get_first_sel(list)
   return 0
 end
 
-function download_subtitles()
+
+function download_selected_subtitle()
   local index = get_first_sel(input_table["mainlist"])
   
   if index == 0 then
@@ -1665,6 +1667,38 @@ function download_subtitles()
     return false
   end
   
+    download_subtitles(index);
+end
+
+
+function doAll()
+    searchIMBD()
+    download_best_four()
+    close()
+end
+
+function download_best_four()
+    local title = openSub.movie.title
+    
+    local fhd = string.find(title,"1080") 
+    local hd = string.find(title,"720")
+    local blu = fhd or hd 
+    
+    
+    for i, item in ipairs(openSub.itemStore) do
+      mainlist:add_value(
+      item.SubFileName..
+      " ["..item.SubLanguageID.."]"..
+      " ("..item.SubSumCD.." CD)", i)
+    end
+    
+    for i=1,2 do
+         download_subtitles(i);
+    end
+end
+
+function download_subtitles(index)
+    
   openSub.actionLabel = lang["mess_downloading"] 
   
   local item = openSub.itemStore[index]
