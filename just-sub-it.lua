@@ -1693,18 +1693,17 @@ weights = {
 
 function download_best_four()
     local title = openSub.movie.title
-    
     local fhd = isFhd(title) 
     local hd = isHd(title)
     local blu = fhd or hd 
---    
+
     local found_subs_count = #(openSub.itemStore)
     
     local max_subs = math.min(3, found_subs_count)
     
     local cur_subs = 0
 
-    vlc.msg.info(title  ", FHD:" .. tostring(isFhd(title))
+    vlc.msg.info(title .. ", FHD:" .. tostring(isFhd(title))
         .. ", HD:" .. tostring(isHd(title))) 
 
     for i, item in ipairs(openSub.itemStore) do
@@ -1717,9 +1716,8 @@ function download_best_four()
     
     vlc.msg.info('Finished matchRes')
     for j, ritem in ipairs(openSub.itemStore) do
-         vlc.msg.info(j .. " Name " .. ritem.SubFileName .. " Rank:" .. ritem.rank) 
+         vlc.msg.info(j .. " Name " .. ritem.SubFileName .. " Rank:" .. tostring(ritem.rank)) 
     end
-----    
 ----              item.SubFileName..
 ----      " ["..item.SubLanguageID.."]"..
 ----      " ("..item.SubSumCD.." CD)", i)
@@ -1733,7 +1731,8 @@ function matchRes(item, fhd, hd)
     if ( (isFhd(item.SubFileName) and fhd) or
          (isHd(item.SubFileName) and hd)) then
         vlc.msg.info(i .. " Name " .. item.SubFileName)
---            item.rank = weights.res_match
+
+        item.rank = weights.res_match
         cur_subs= cur_subs + 1
     end
 end
