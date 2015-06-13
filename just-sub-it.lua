@@ -355,7 +355,10 @@ function activate()
 end
 
 function close()
-    vlc.extension():deactivate()
+--    vlc.extension():deactivate()
+-- This seems to cause error for vlc internally because it doesn't expect something
+-- to deactivate before the activate function finished, probably
+  vlc.extension.deactivate()
 end
 
 function deactivate()
