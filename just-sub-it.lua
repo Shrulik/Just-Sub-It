@@ -328,7 +328,7 @@ local select_conf = {} -- Drop down widget / option table association
 function descriptor()
   return { 
     title = "Just Sub It",
-    version = "0.0.2",
+    version = "0.0.3",
     author = "Y&L K",
     url = 'http://kungfury.com',
     shortdesc = " 90% of VLsub in one click";
@@ -558,17 +558,17 @@ function trigger_menu(dlg_id)
   if dlg_id == 1 then
     close_dlg()
     dlg = vlc.dialog(
-      openSub.conf.useragent)
+    descriptor().title)
     interface_main()
   elseif dlg_id == 2 then
     close_dlg()
     dlg = vlc.dialog(
-      openSub.conf.useragent..': '..lang["int_configuration"])
+      descriptor().title..': '..lang["int_configuration"])
     interface_config()
   elseif dlg_id == 3 then
     close_dlg()
     dlg = vlc.dialog(
-      openSub.conf.useragent..': '..lang["int_help"])
+      descriptor().title..': '..lang["int_help"])
     interface_help()
   end
   collectgarbage() --~ !important	
