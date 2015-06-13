@@ -59,7 +59,7 @@ local options = {
   },
   translation = {
     int_all = 'All',
-    int_descr = 'Download subtitles from OpenSubtitles.org',
+    int_descr = 'One click subtitle download from OpenSubtitles.org',
     int_research = 'Research',
     int_config = 'Config',
     int_configuration = 'Configuration',
@@ -327,11 +327,11 @@ local select_conf = {} -- Drop down widget / option table association
 
 function descriptor()
   return { 
-    title = "VLsubub 0.0.1",
-    version = "0.0.1",
-    author = "exebetche",
-    url = 'http://www.opensubtitles.org/',
-    shortdesc = "VLsub turned to 11.";
+    title = "Just Sub It",
+    version = "0.0.2",
+    author = "Y&L K",
+    url = 'http://kungfury.com',
+    shortdesc = " 90% of VLsub in one click";
     description = options.translation.int_descr,
     capabilities = {"menu", "input-listener" }
   }
@@ -1674,26 +1674,67 @@ end
 function doAll()
     searchIMBD()
     download_best_four()
-    close()
+--    close()
 end
+
+function isFhd(fileName)
+    return string.find(fileName,"1080") ~= nil
+end
+
+function isHd(fileName)
+    return string.find(fileName,"720") ~= nil
+end
+
+weights = {
+        res_match = 10, 
+        hd_match = 4,
+        per_word_match = 1
+}
 
 function download_best_four()
     local title = openSub.movie.title
     
-    local fhd = string.find(title,"1080") 
-    local hd = string.find(title,"720")
+    local fhd = isFhd(title) 
+    local hd = isHd(title)
     local blu = fhd or hd 
+--    
+    local found_subs_count = #(openSub.itemStore)
     
+    local max_subs = math.min(3, found_subs_count)
     
+    local cur_subs = 0
+
+    vlc.msg.info(title  ", FHD:" .. tostring(isFhd(title))
+        .. ", HD:" .. tostring(isHd(title))) 
+
     for i, item in ipairs(openSub.itemStore) do
-      mainlist:add_value(
-      item.SubFileName..
-      " ["..item.SubLanguageID.."]"..
-      " ("..item.SubSumCD.." CD)", i)
+        if ( cur_subs >= max_subs) then
+            return
+        end
+        
+        matchRes(item, fhd, hd)
     end
     
-    for i=1,2 do
-         download_subtitles(i);
+    vlc.msg.info('Finished matchRes')
+    for j, ritem in ipairs(openSub.itemStore) do
+         vlc.msg.info(j .. " Name " .. ritem.SubFileName .. " Rank:" .. ritem.rank) 
+    end
+----    
+----              item.SubFileName..
+----      " ["..item.SubLanguageID.."]"..
+----      " ("..item.SubSumCD.." CD)", i)
+--    for j=cur_subs,max_subs do
+--         download_subtitles(j % found_subs_count);
+--    end
+end
+
+function matchRes(item, fhd, hd)
+    vlc.msg.info('Called matchRes')
+    if ( (isFhd(item.SubFileName) and fhd) or
+         (isHd(item.SubFileName) and hd)) then
+        vlc.msg.info(i .. " Name " .. item.SubFileName)
+--            item.rank = weights.res_match
+        cur_subs= cur_subs + 1
     end
 end
 
