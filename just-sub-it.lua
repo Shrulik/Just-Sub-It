@@ -1674,7 +1674,7 @@ end
 function doAll()
     searchIMBD()
     download_best_four()
---    close()
+    close()
 end
 
 function isFhd(fileName)
@@ -1686,10 +1686,16 @@ function isHd(fileName)
 end
 
 weights = {
-        res_match = 10, 
-        hd_match = 4,
+        res_match = 100,
+        hd_match = 50,
         per_word_match = 1
 }
+
+
+function compare(a,b)
+  vlc.msg.info('Compare '..tostring(a.rank).. ' '.. tostring(b.rank))
+  return a.rank > b.rank
+end
 
 function download_best_four()
     local title = openSub.movie.title
@@ -1699,43 +1705,46 @@ function download_best_four()
 
     local found_subs_count = #(openSub.itemStore)
     
-    local max_subs = math.min(3, found_subs_count)
-    
-    local cur_subs = 0
+    local max_subs = math.min(4, found_subs_count)
 
-    vlc.msg.info(title .. ", FHD:" .. tostring(isFhd(title))
-        .. ", HD:" .. tostring(isHd(title))) 
+    if ( max_subs <= 0) then
+            return
+    end
 
     for i, item in ipairs(openSub.itemStore) do
-        if ( cur_subs >= max_subs) then
-            return
-        end
-        
+        item.rank = 0
         matchRes(item, fhd, hd)
+        matchHD(item, fhd, hd)
     end
-    
-    vlc.msg.info('Finished matchRes')
-    for j, ritem in ipairs(openSub.itemStore) do
-         vlc.msg.info(j .. " Name " .. ritem.SubFileName .. " Rank:" .. tostring(ritem.rank)) 
+
+    vlc.msg.info('Sorting')
+    table.sort(openSub.itemStore, compare)
+
+    vlc.msg.info('Downloading')
+    for k=1, max_subs do
+      download_subtitles(k)
     end
-----              item.SubFileName..
-----      " ["..item.SubLanguageID.."]"..
-----      " ("..item.SubSumCD.." CD)", i)
---    for j=cur_subs,max_subs do
---         download_subtitles(j % found_subs_count);
---    end
 end
 
 function matchRes(item, fhd, hd)
-    vlc.msg.info('Called matchRes')
+    vlc.msg.info('Called matchRes with '.. item.SubFileName ..
+            " " .. tostring(fhd) .. "/".. tostring(hd))
     if ( (isFhd(item.SubFileName) and fhd) or
          (isHd(item.SubFileName) and hd)) then
-        vlc.msg.info(i .. " Name " .. item.SubFileName)
-
-        item.rank = weights.res_match
-        cur_subs= cur_subs + 1
+        item.rank = item.rank + weights.res_match
     end
 end
+
+
+function matchHD(item, fhd, hd)
+    vlc.msg.info('Called matchHD with '.. item.SubFileName ..
+            " " .. tostring(fhd) .. "/".. tostring(hd))
+    if ( (isFhd(item.SubFileName) or (isHd(item.SubFileName))) and
+            (fhd or hd)) then
+        item.rank = item.rank + weights.hd_match
+    end
+end
+
 
 function download_subtitles(index)
     
