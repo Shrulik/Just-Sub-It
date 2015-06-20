@@ -3,7 +3,7 @@ VLSub Extension for VLC media player 1.1 and 2.0
 Copyright 2013 Guillaume Le Maout
 
 Authors:  Guillaume Le Maout
-Contact: 
+Contact:
 http://addons.videolan.org/messages/?action=newmessage&username=exebetche
 Bug report: http://addons.videolan.org/content/show.php/?content=148752
 
@@ -23,27 +23,31 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
 --]]
 
 
-            --[[ Global var ]]-- 
+            --[[ Global var ]]--
 
 -- You can set here your default language by replacing nil with
--- your language code (see below).Example: 
--- language = "fre", 
--- language = "ger", 
+-- your language code (see below).Example:
+-- language = "fre",
+-- language = "ger",
 -- language = "eng",
 -- ...
+
+local langsByPriority = nil
+local langPriority = 1 -- Counter for which language to download a subtitle for
 
 local options = {
   language = nil,
   downloadBehaviour = 'save',
   langExt = false,
+  numToAutoDownload = 4,
   removeTag = false,
   showMediaInformation = true,
   progressBarSize = 80,
   intLang = 'eng',
   translations_avail = {
     eng = 'English',
-    cze = 'Czech', 
-    dan = 'Danish', 
+    cze = 'Czech',
+    dan = 'Danish',
     dut = 'Nederlands',
     fre = 'Français',
     ell = 'Greek',
@@ -93,60 +97,60 @@ local options = {
     int_os_username = 'Username',
     int_os_password = 'Password',
     int_help_mess =[[
-      Download subtitles from 
+      Download subtitles from
       <a href='http://www.opensubtitles.org/'>
       opensubtitles.org
       </a> and display them while watching a video.<br>
       <br>
       <b><u>Usage:</u></b><br>
       <br>
-      Start your video. If you use Vlsub witout playing a video 
-      you will get a link to download the subtitles in your browser 
+      Start your video. If you use Vlsub witout playing a video
+      you will get a link to download the subtitles in your browser
       but the subtitles won't be saved and loaded automatically.<br>
       <br>
-      Choose the language for your subtitles and click on the 
-      button corresponding to one of the two research methods 
+      Choose the language for your subtitles and click on the
+      button corresponding to one of the two research methods
       provided by VLSub:<br>
       <br>
       <b>Method 1: Search by hash</b><br>
-      It is recommended to try this method first, because it 
-      performs a research based on the video file print, so you 
+      It is recommended to try this method first, because it
+      performs a research based on the video file print, so you
       can find subtitles synchronized with your video.<br>
       <br>
       <b>Method 2: Search by name</b><br>
-      If you have no luck with the first method, just check the 
-      title is correct before clicking. If you search subtitles 
-      for a series, you can also provide a season and episode 
+      If you have no luck with the first method, just check the
+      title is correct before clicking. If you search subtitles
+      for a series, you can also provide a season and episode
       number.<br>
       <br>
       <b>Downloading Subtitles</b><br>
       Select one subtitle in the list and click on 'Download'.<br>
-      It will be put in the same directory that your video, with 
+      It will be put in the same directory that your video, with
       the same name (different extension)
-      so VLC will load them automatically the next time you'll 
+      so VLC will load them automatically the next time you'll
       start the video.<br>
       <br>
-      <b>/!\\ Beware :</b> Existing subtitles are overwritten 
-      without asking confirmation, so put them elsewhere if 
+      <b>/!\\ Beware :</b> Existing subtitles are overwritten
+      without asking confirmation, so put them elsewhere if
       they're important.<br>
       <br>
-      Find more VLC extensions at 
+      Find more VLC extensions at
       <a href='http://addons.videolan.org'>addons.videolan.org</a>.
       ]],
     int_no_support_mess = [[
-      <strong>VLSub is not working with Vlc 2.1.x on 
+      <strong>VLSub is not working with Vlc 2.1.x on
       any platform</strong>
-      because the lua "net" module needed to interact 
-      with opensubtitles has been 
+      because the lua "net" module needed to interact
+      with opensubtitles has been
       removed in this release for the extensions.
       <br>
       <strong>Works with Vlc 2.2 on mac and linux.</strong>
       <br>
-      <strong>On windows you have to install an older version 
+      <strong>On windows you have to install an older version
       of Vlc (2.0.8 for example)</strong>
       to use Vlsub:
       <br>
-      <a target="_blank" rel="nofollow" 
+      <a target="_blank" rel="nofollow"
       href="http://download.videolan.org/pub/videolan/vlc/2.0.8/">
       http://download.videolan.org/pub/videolan/vlc/2.0.8/</a><br>
     ]],
@@ -321,12 +325,12 @@ local lang_os_to_iso = {
 
 local dlg = nil
 local input_table = {} -- General widget id reference
-local select_conf = {} -- Drop down widget / option table association 
+local select_conf = {} -- Drop down widget / option table association
 
             --[[ VLC extension stuff ]]--
 
 function descriptor()
-  return { 
+  return {
     title = "Just Sub It",
     version = "0.0.3",
     author = "Y&L K",
@@ -338,11 +342,13 @@ function descriptor()
 end
 
 function activate()
-  vlc.msg.dbg("[VLsub] Welcome")
   
-  if not check_config() then 
+  vlc.msg.dbg("[VLsub] Welcome")
+    
+  
+  if not check_config() then
   	vlc.msg.err("[VLsub] Unsupported VLC version")
-  	return false 
+  	return false
   end
   	
   if vlc.input.item() then
@@ -364,7 +370,7 @@ end
 function deactivate()
   vlc.msg.dbg("[VLsub] Bye bye!")
   if dlg then
-    dlg:hide() 
+    dlg:hide()
   end
   
   if openSub.session.token and openSub.session.token ~= "" then
@@ -373,9 +379,9 @@ function deactivate()
 end
 
 function menu()
-  return { 	  
-    lang.int_research, 
-    lang.int_config, 
+  return {
+    lang.int_research,
+    lang.int_config,
     lang.int_help
   }
 end
@@ -395,15 +401,15 @@ end
 function interface_main()
   dlg:add_label(lang["int_default_lang"]..':', 1, 1, 1, 1)
   input_table['language'] =  dlg:add_dropdown(2, 1, 2, 1)
-  dlg:add_button(lang["int_search_hash"], 
+  dlg:add_button(lang["int_search_hash"],
     searchHash, 4, 1, 1, 1)
   
   dlg:add_label(lang["int_title"]..':', 1, 2, 1, 1)
   input_table['title'] = dlg:add_text_input(
     openSub.movie.title or "", 2, 2, 2, 1)
-  dlg:add_button(lang["int_search_name"], 
+  dlg:add_button(lang["int_search_name"],
     searchIMBD, 4, 2, 1, 1)
-  dlg:add_button(lang["int_do_all"], 
+  dlg:add_button(lang["int_do_all"],
     doAll, 4, 3, 1, 1)
   dlg:add_label(lang["int_season"]..':', 1, 3, 1, 1)
   input_table['seasonNumber'] = dlg:add_text_input(
@@ -421,13 +427,13 @@ function interface_main()
   dlg:add_button(
     lang["int_dowload_sel"], download_selected_subtitle, 3, 7, 1, 1)
   dlg:add_button(
-    lang["int_close"], deactivate, 4, 7, 1, 1) 
+    lang["int_close"], deactivate, 4, 7, 1, 1)
   
   assoc_select_conf(
     'language',
     'language',
-    openSub.conf.languages, 
-    2, 
+    openSub.conf.languages,
+    2,
     lang["int_all"])
     
   display_subtitles()
@@ -454,10 +460,10 @@ function interface_config()
   input_table['intLangBut'] = dlg:add_button(
     lang["int_search_transl"],
     get_available_translations, 2, 1, 1, 1)
-  input_table['intLang'] = dlg:add_dropdown(3, 1, 1, 1)	
+  input_table['intLang'] = dlg:add_dropdown(3, 1, 1, 1)
   dlg:add_label(
     lang["int_default_lang"]..':', 1, 2, 2, 1)
-  input_table['default_language'] = dlg:add_dropdown(3, 2, 1, 1)	
+  input_table['default_language'] = dlg:add_dropdown(3, 2, 1, 1)
   dlg:add_label(
     lang["int_dowload_behav"]..':', 1, 3, 2, 1)
   input_table['downloadBehaviour'] = dlg:add_dropdown(3, 3, 1, 1)
@@ -489,12 +495,12 @@ function interface_config()
   dlg:add_label(
     lang["int_os_username"]..':', 1, 7, 0, 1)
   input_table['os_username'] = dlg:add_text_input(
-    type(openSub.option.os_username) == "string" 
+    type(openSub.option.os_username) == "string"
     and openSub.option.os_username or "", 2, 7, 2, 1)
   dlg:add_label(
     lang["int_os_password"]..':', 1, 8, 0, 1)
   input_table['os_password'] = dlg:add_text_input(
-    type(openSub.option.os_password) == "string" 
+    type(openSub.option.os_password) == "string"
     and openSub.option.os_password or "", 2, 8, 2, 1)
         
   input_table['message'] = nil
@@ -571,8 +577,8 @@ function trigger_menu(dlg_id)
       descriptor().title..': '..lang["int_help"])
     interface_help()
   end
-  collectgarbage() --~ !important	
-end 
+  collectgarbage() --~ !important
+end
 
 function show_main()
   trigger_menu(1)
@@ -589,15 +595,15 @@ end
 function close_dlg()
   vlc.msg.dbg("[VLSub] Closing dialog")
 
-  if dlg ~= nil then 
+  if dlg ~= nil then
     --~ dlg:delete() -- Throw an error
-    dlg:hide() 
+    dlg:hide()
   end
   
   dlg = nil
   input_table = nil
   input_table = {}
-  collectgarbage() --~ !important	
+  collectgarbage() --~ !important
 end
 
             --[[ Drop down / config association]]--
@@ -615,18 +621,18 @@ function assoc_select_conf(select_id, option, conf, ind, default)
 end
 
 function set_default_option(select_id)
--- Put the selected option of a list in first place of the associated table 
+-- Put the selected option of a list in first place of the associated table
   local opt = select_conf[select_id].opt
   local cfg = select_conf[select_id].cf
   local ind = select_conf[select_id].ind
   if openSub.option[opt] then
-    table.sort(cfg, function(a, b) 
+    table.sort(cfg, function(a, b)
       if a[1] == openSub.option[opt] then
         return true
       elseif b[1] == openSub.option[opt] then
         return false
       else
-        return a[ind] < b[ind] 
+        return a[ind] < b[ind]
       end
     end)
   end
@@ -640,7 +646,7 @@ function display_select(select_id)
   local default = select_conf[select_id].dflt
   local default_isset = false
     
-  if not default then 
+  if not default then
     default_isset = true
   end
   
@@ -663,7 +669,7 @@ end
             --[[ Config & interface localization]]--
 
 function check_config()
-  -- Make a copy of english translation to use it as default 
+  -- Make a copy of english translation to use it as default
   -- in case some element aren't translated in other translations
   eng_translation = {}
   for k, v in pairs(openSub.option.translation) do
@@ -693,7 +699,7 @@ function check_config()
   -- Check if config file path is stored in vlc config
   local other_dirs = {}
   
-  for path in 
+  for path in
   vlc.config.get("sub-autodetect-path"):gmatch("[^,]+") do
     if path:match(".*"..sub_dir.."$") then
       openSub.conf.dirPath = path:gsub(
@@ -704,7 +710,7 @@ function check_config()
   end
   
   -- if not stored in vlc config
-  -- try to find a suitable config file path 
+  -- try to find a suitable config file path
   
   if openSub.conf.dirPath then
     if not is_dir(openSub.conf.dirPath) and
@@ -731,7 +737,7 @@ function check_config()
         ..slash..path_generic[2]
       
       -- use the same folder as the extension if accessible
-      if is_dir(userdatadir..extension_path) 
+      if is_dir(userdatadir..extension_path)
       and file_touch(userdatadir..dirPath..filePath) then
           openSub.conf.dirPath = userdatadir..dirPath
       elseif file_touch(datadir..dirPath..filePath) then
@@ -750,7 +756,7 @@ function check_config()
         end
       end
       
-      -- try to create working dir in vlc folder	
+      -- try to create working dir in vlc folder
       if not openSub.conf.dirPath and
       is_dir(datadir) then
         if not is_dir(datadir..dirPath) then
@@ -767,10 +773,10 @@ function check_config()
     vlc.msg.dbg("[VLSub] Working directory: " ..
       (openSub.conf.dirPath or "not found"))
     
-    openSub.conf.filePath = openSub.conf.dirPath..filePath 
+    openSub.conf.filePath = openSub.conf.dirPath..filePath
     openSub.conf.localePath = openSub.conf.dirPath..slash.."locale"
     
-    if config_saved 
+    if config_saved
     and file_exist(openSub.conf.filePath) then
       vlc.msg.dbg(
         "[VLSub] Loading config file: "..openSub.conf.filePath)
@@ -784,7 +790,7 @@ function check_config()
       end
     end
     
-    -- Check presence of a translation file 
+    -- Check presence of a translation file
     -- in "%vlsub_directory%/locale"
     -- Add translation files to available translation list
     local file_list = list_dir(openSub.conf.localePath)
@@ -796,7 +802,7 @@ function check_config()
           file_name,
           "^(%w%w%w).xml$",
           "%1")
-        if lg 
+        if lg
         and not openSub.option.translations_avail[lg] then
           table.insert(translations_avail, {
             lg,
@@ -807,7 +813,7 @@ function check_config()
     end
     
     -- Load selected translation from file
-    if openSub.option.intLang ~= "eng" 
+    if openSub.option.intLang ~= "eng"
     and not openSub.conf.translated
     then
       local transl_file_path = openSub.conf.localePath..
@@ -840,10 +846,10 @@ function check_config()
     setError(lang["mess_err_conf_access"])
   end
     
-  -- Set table list of available translations from assoc. array 
+  -- Set table list of available translations from assoc. array
   -- so it is sortable
   
-  for k, l in pairs(openSub.option.translations_avail) do		
+  for k, l in pairs(openSub.option.translations_avail) do
     if k == openSub.option.int_research then
       table.insert(openSub.conf.translations_avail, 1, {k, l})
     else
@@ -894,7 +900,7 @@ function load_transl(path)
   tmpFile:close()
   openSub.option.translation = nil
   
-  openSub.option.translation = parse_xml(resp)	
+  openSub.option.translation = parse_xml(resp)
   collectgarbage()
 end
 
@@ -908,7 +914,7 @@ function apply_translation()
 end
 
 function getenv_lang()
--- Retrieve the user OS language 
+-- Retrieve the user OS language
   local os_lang = os.getenv("LANG")
   
   if os_lang then -- unix, mac
@@ -924,7 +930,28 @@ function getenv_lang()
      if v[2] == lang_w then
       openSub.option.language = v[1]
      end
-    end 
+    end
+  end
+end
+
+function get_lang(lang_code)
+-- Retrieve the user OS language
+  local os_lang = os.getenv("LANG")
+  
+  if os_lang then -- unix, mac
+    os_lang = string.sub(os_lang, 0, 2)
+    if type(lang_os_to_iso[os_lang]) then
+      openSub.option.language = lang_os_to_iso[os_lang]
+    end
+  else -- Windows
+    local lang_w = string.match(
+      os.setlocale("", "collate"),
+      "^[^_]+")
+    for i, v in ipairs(openSub.conf.languages) do
+     if v[2] == lang_w then
+      openSub.option.language = v[1]
+     end
+    end
   end
 end
 
@@ -935,7 +962,7 @@ function apply_config()
   local opt
   local sel_cf
   
-  if lg_sel and lg_sel ~= 1 
+  if lg_sel and lg_sel ~= 1
   and openSub.conf.translations_avail[lg_sel] then
     local lg = openSub.conf.translations_avail[lg_sel][1]
     set_translation(lg)
@@ -943,7 +970,7 @@ function apply_config()
   end
   
   for select_id, v in pairs(select_conf) do
-    if input_table[select_id] 
+    if input_table[select_id]
     and select_conf[select_id] then
       sel_val = input_table[select_id]:get_value()
       sel_cf = select_conf[select_id]
@@ -977,12 +1004,12 @@ function apply_config()
   if trim(dir_path) == "" then dir_path = nil end
   
   if dir_path ~= openSub.conf.dirPath then
-    if openSub.conf.os == "lin" 
-    or is_win_safe(dir_path) 
+    if openSub.conf.os == "lin"
+    or is_win_safe(dir_path)
     or not dir_path then
       local other_dirs = {}
     
-      for path in 
+      for path in
       vlc.config.get(
         "sub-autodetect-path"):gmatch("[^,]+"
       ) do
@@ -993,7 +1020,7 @@ function apply_config()
       end
       openSub.conf.dirPath = dir_path
       if dir_path then
-        table.insert(other_dirs, 
+        table.insert(other_dirs,
         string.gsub(dir_path, "^(.-)[\\/]?$", "%1")..sub_dir)
         
         if not is_dir(dir_path) then
@@ -1037,7 +1064,7 @@ function apply_config()
 end
 
 function save_config()
--- Dump local config into config file 
+-- Dump local config into config file
   if openSub.conf.dirPath
   and openSub.conf.filePath then
     vlc.msg.dbg(
@@ -1066,8 +1093,8 @@ function save_config()
 end
 
 function SetDownloadBehaviours()
-  openSub.conf.downloadBehaviours = nil 
-  openSub.conf.downloadBehaviours = { 
+  openSub.conf.downloadBehaviours = nil
+  openSub.conf.downloadBehaviours = {
     {'save', lang["int_dowload_save"]},
     {'manual', lang["int_dowload_manual"]}
   }
@@ -1075,14 +1102,14 @@ end
 
 function get_available_translations()
 -- Get all available translation files from the internet
--- (drop previous direct download from github repo 
+-- (drop previous direct download from github repo
 -- causing error  with github https CA certficate on OS X an XP)
 -- https://github.com/exebetche/vlsub/tree/master/locale
   
   local translations_url = "http://addons.videolan.org/CONTENT/"..
     "content-files/148752-vlsub_translations.xml"
   
-  if input_table['intLangBut']:get_text() == lang["int_search_transl"] 
+  if input_table['intLangBut']:get_text() == lang["int_search_transl"]
   then
     openSub.actionLabel = lang["int_searching_transl"]
     
@@ -1092,7 +1119,7 @@ function get_available_translations()
     local lg, trsl
     
     for lg, trsl in pairs(all_trsl) do
-      if lg ~= options.intLang[1] 
+      if lg ~= options.intLang[1]
       and not translations_avail[lg] then
         translations_avail[lg] = trsl_names[lg] or ""
         table.insert(openSub.conf.translations_avail, {
@@ -1120,7 +1147,7 @@ function set_translation(lg)
     end
   else
     -- If translation file exists in /locale directory load it
-    if openSub.conf.localePath 
+    if openSub.conf.localePath
     and file_exist(openSub.conf.localePath..
       slash..lg..".xml") then
       local transl_file_path = openSub.conf.localePath..
@@ -1148,7 +1175,7 @@ function set_translation(lg)
   lang = nil
   lang = openSub.option.translation
   collectgarbage()
-end 
+end
 
             --[[ Core ]]--
 
@@ -1194,12 +1221,12 @@ openSub = {
     local params = openSub.methods[methodName].params()
     local reqTable = openSub.getMethodBase(methodName, params)
     local request = "<?xml version='1.0'?>"..dump_xml(reqTable)
-    local host, path = parse_url(openSub.conf.url)		
+    local host, path = parse_url(openSub.conf.url)
     local header = {
-      "POST "..path.." HTTP/1.1", 
-      "Host: "..host, 
-      "User-Agent: "..openSub.conf.userAgentHTTP, 
-      "Content-Type: text/xml", 
+      "POST "..path.." HTTP/1.1",
+      "Host: "..host,
+      "User-Agent: "..openSub.conf.userAgentHTTP,
+      "Content-Type: text/xml",
       "Content-Length: "..string.len(request),
       "",
       ""
@@ -1209,10 +1236,11 @@ openSub = {
     local response
     local status, responseStr = http_req(host, 80, request)
     
-    if status == 200 then 
+    if status == 200 then
       response = parse_xmlrpc(responseStr)
       if response then
         if response.status == "200 OK" then
+          --printTable(response)
           return openSub.methods[methodName]
             .callback(response)
         elseif response.status == "406 No session" then
@@ -1237,7 +1265,7 @@ openSub = {
         openSub.request(methodName)
       end
       return false
-    elseif status == 503 then 
+    elseif status == 503 then
       setError("Server overloaded, please retry later")
       return false
     end
@@ -1263,7 +1291,7 @@ openSub = {
           { value={ string=openSub.option.os_username } },
           { value={ string=openSub.option.os_password } },
           { value={ string=openSub.movie.sublanguageid } },
-          { value={ string=openSub.conf.useragent } } 
+          { value={ string=openSub.conf.useragent } }
         }
       end,
       callback = function(resp)
@@ -1276,7 +1304,7 @@ openSub = {
       params = function()
         openSub.actionLabel = lang["action_logout"]
         return {
-          { value={ string=openSub.session.token } } 
+          { value={ string=openSub.session.token } }
         }
       end,
       callback = function()
@@ -1287,7 +1315,7 @@ openSub = {
       params = function()
         openSub.actionLabel = lang["action_noop"]
         return {
-          { value={ string=openSub.session.token } } 
+          { value={ string=openSub.session.token } }
         }
       end,
       callback = function(resp)
@@ -1309,13 +1337,13 @@ openSub = {
               value={
                struct={
                 member={
-                 { name="sublanguageid", value={ 
-                  string=openSub.movie.sublanguageid } 
+                 { name="sublanguageid", value={
+                  string=openSub.movie.sublanguageid }
                   },
-                 { name="moviehash", value={ 
+                 { name="moviehash", value={
                   string=openSub.file.hash } },
-                 { name="moviebytesize", value={ 
-                  double=openSub.file.bytesize } } 
+                 { name="moviebytesize", value={
+                  double=openSub.file.bytesize } }
                   }}}}}}}
         }
       end,
@@ -1331,21 +1359,21 @@ openSub = {
           progressBarContent(0))
                 
         local member = {
-             { name="sublanguageid", value={ 
+             { name="sublanguageid", value={
               string=openSub.movie.sublanguageid } },
-             { name="query", value={ 
+             { name="query", value={
               string=openSub.movie.title } } }
              
         
         if openSub.movie.seasonNumber ~= nil then
-          table.insert(member, { name="season", value={ 
+          table.insert(member, { name="season", value={
             string=openSub.movie.seasonNumber } })
-        end 
+        end
         
         if openSub.movie.episodeNumber ~= nil then
-          table.insert(member, { name="episode", value={ 
+          table.insert(member, { name="episode", value={
             string=openSub.movie.episodeNumber } })
-        end 
+        end
         
         return {
           { value={ string=openSub.session.token } },
@@ -1359,7 +1387,25 @@ openSub = {
         }
       end,
       callback = function(resp)
-        openSub.itemStore = resp.data
+        
+        if ( resp.data == "0") then -- No subs found at all 
+          searchIMBD();
+          return
+        end
+        
+        openSub.itemStore = joinTables(openSub.itemStore, resp.data)
+
+        local count = 0;
+        for k,v in pairs(openSub.itemStore) do
+            count = count + 1
+        end
+        
+        vlc.msg.info ('NumToDownload ' .. tostring(options.numToAutoDownload))
+        vlc.msg.info ('count ' .. tostring(count))
+        
+        if ( count < options.numToAutoDownload ) then
+          searchIMBD()
+        end
       end
     }
   },
@@ -1412,7 +1458,7 @@ openSub = {
           '^(.+/)([^/]*)$')
         
         local file_stat = vlc.net.stat(file.path)
-        if file_stat 
+        if file_stat
         then
           file.stat = file_stat
         end
@@ -1444,7 +1490,7 @@ openSub = {
       openSub.movie.title = ""
       openSub.movie.seasonNumber = ""
       openSub.movie.episodeNumber = ""
-      return false 
+      return false
     end
     
     local showName, seasonNumber, episodeNumber = string.match(
@@ -1512,7 +1558,7 @@ openSub = {
         collectgarbage()
       end
       data_end = string.sub((dataTmp1..dataTmp2), -chunk_size)
-    elseif not file_exist(openSub.file.path) 
+    elseif not file_exist(openSub.file.path)
     and openSub.file.stat then
       vlc.msg.dbg("[VLSub] Read hash data from stream")
       
@@ -1528,7 +1574,7 @@ openSub = {
       
       data_start = file:read(chunk_size)
       
-      -- "Seek" to the end 
+      -- "Seek" to the end
       file:read(decal)
       
       for i = 1, math.floor(((size-decal)/chunk_size))-2 do
@@ -1611,20 +1657,80 @@ function searchHash()
   end
 end
 
+function isempty(s)
+    return s == nil or s == ''
+end
+
+function trim(s)
+    return s:gsub("^%s+", ""):gsub("%s+$", "")
+end
+
+function convertToLangRankMaps(preferedSubLangs)
+
+    local langs = {}
+    local ind = 1
+
+    if not isempty(preferedSubLangs) then
+        for i, k in string.gmatch(preferedSubLangs .. ",", "([^,]*),") do
+            local b = trim(i)
+            langs[ind] = b
+            ind = ind + 1
+        end
+    end
+
+    local len = #langs
+    print(len)
+    local rankedLangs = {}
+    for i, k in ipairs(langs) do
+        rankedLangs[k] = (len - i) * 100 + 100
+    end
+
+    return langs, rankedLangs
+end
+
 
 function searchIMBD()
+
+
   openSub.movie.title = trim(input_table["title"]:get_text())
   openSub.movie.seasonNumber = tonumber(
     input_table["seasonNumber"]:get_text())
   openSub.movie.episodeNumber = tonumber(
     input_table["episodeNumber"]:get_text())
 
-  local sel = input_table["language"]:get_value()
-  if sel == 0 then
-    openSub.movie.sublanguageid = 'all'
-  else
-    openSub.movie.sublanguageid = openSub.conf.languages[sel][1]
+
+  openSub.movie.sublanguageid = nil
+
+  vlc.msg.info('LangsByPriority:')
+  printTable(langsByPriority)
+
+  if not isempty(langsByPriority) then
+      
+      vlc.msg.info('Lang priority is ' .. tostring(langPriority));
+
+      openSub.movie.sublanguageid = langsByPriority[langPriority]
+      
+      if nil == openSub.movie.sublanguageid then     
+        vlc.msg.info('No more langugaes defined to download subtitles in');
+        return 
+      end
+        
+      langPriority = langPriority + 1
+  end 
+  
+  if nil == openSub.movie.sublanguageid then
+      
+    local sel = input_table["language"]:get_value() 
+      
+    if sel == 0 then
+      openSub.movie.sublanguageid = 'all'
+    else
+      openSub.movie.sublanguageid = openSub.conf.languages[sel][1]
+    end
+
   end
+  
+  vlc.msg.info('Search language id ' .. tostring(openSub.movie.sublanguageid))
   
   if openSub.movie.title ~= "" then
     openSub.checkSession()
@@ -1637,11 +1743,11 @@ function display_subtitles()
   local mainlist = input_table["mainlist"]
   mainlist:clear()
   
-  if openSub.itemStore == "0" then 
+  if openSub.itemStore == "0" then
     mainlist:add_value(lang["mess_no_res"], 1)
     setMessage("<b>"..lang["mess_complete"]..":</b> "..
       lang["mess_no_res"])
-  elseif openSub.itemStore then 
+  elseif openSub.itemStore then
     for i, item in ipairs(openSub.itemStore) do
       mainlist:add_value(
       item.SubFileName..
@@ -1655,7 +1761,7 @@ end
 
 function get_first_sel(list)
   local selection = list:get_selection()
-  for index, name in pairs(selection) do 
+  for index, name in pairs(selection) do
     return index
   end
   return 0
@@ -1675,9 +1781,27 @@ end
 
 
 function doAll()
+  
+    loadLangPrefs()
+
+    vlc.msg.info('Search start ')
+
     searchIMBD()
-    download_best_four()
+
+    vlc.msg.info('Download start ')
+    download_best()
+    
     close()
+end
+
+function loadLangPrefs ()
+
+  local preferedSubLangs = vlc.config.get('sub-language');
+  local pLangsToRank -- not in use, so local for now
+  
+  if not isempty(preferedSubLangs) then
+      langsByPriority, pLangsToRank = convertToLangRankMaps(preferedSubLangs)  
+  end
 end
 
 function isFhd(fileName)
@@ -1700,15 +1824,15 @@ function compare(a,b)
   return a.rank > b.rank
 end
 
-function download_best_four()
+function download_best()
     local title = openSub.movie.title
-    local fhd = isFhd(title) 
+    local fhd = isFhd(title)
     local hd = isHd(title)
-    local blu = fhd or hd 
+    local blu = fhd or hd
 
     local found_subs_count = #(openSub.itemStore)
     
-    local max_subs = math.min(4, found_subs_count)
+    local max_subs = math.min(options.numToAutoDownload, found_subs_count)
 
     if ( max_subs <= 0) then
             return
@@ -1748,14 +1872,31 @@ function matchHD(item, fhd, hd)
     end
 end
 
+function pickNameForSubFile (item)
+  local subfileName = item.SubFileName or ""
+
+  subfileName = string.gsub(subfileName, '\.'.. item.SubFormat ..'$',"") -- Remove extension
+
+  subfileName = string.gsub(subfileName, '%W','_') -- Remove weird characters vlc might refuse in subfile name
+
+--  subfileName = openSub.file.name .. "_".. subfileName
+
+  if openSub.option.langExt then
+    subfileName = subfileName.."."..item.SubLanguageID
+  end
+
+  subfileName = subfileName.."."..item.SubFormat
+
+  return subfileName
+end
 
 function download_subtitles(index)
     
-  openSub.actionLabel = lang["mess_downloading"] 
+  openSub.actionLabel = lang["mess_downloading"]
   
   local item = openSub.itemStore[index]
   
-  if openSub.option.downloadBehaviour == 'manual' 
+  if openSub.option.downloadBehaviour == 'manual'
   or not openSub.file.hasInput then
     local link = "<span style='color:#181'>"
     link = link.."<b>"..lang["mess_dowload_link"]..":</b>"
@@ -1769,13 +1910,9 @@ function download_subtitles(index)
   end
   
   local message = ""
-  local subfileName = openSub.file.name or ""
-  
-  if openSub.option.langExt then
-    subfileName = subfileName.."."..item.SubLanguageID
-  end
-  
-  subfileName = subfileName.."."..item.SubFormat
+
+  local subfileName = pickNameForSubFile(item)
+
   local tmp_dir
   local file_target_access = true
   
@@ -1795,8 +1932,8 @@ function download_subtitles(index)
   end
   
   local tmpFileURI, tmpFileName = dump_zip(
-    item.ZipDownloadLink, 
-    tmp_dir, 
+    item.ZipDownloadLink,
+    tmp_dir,
     item.SubFileName)
   
   vlc.msg.dbg("[VLsub] tmpFileName: "..tmpFileName)
@@ -1804,7 +1941,7 @@ function download_subtitles(index)
   -- Determine if the path to the video file is accessible for writing
   
   local target = openSub.file.dir..subfileName
-  
+
   if not file_touch(target) then
     if openSub.conf.dirPath then
       target =  openSub.conf.dirPath..slash..subfileName
@@ -1822,8 +1959,8 @@ function download_subtitles(index)
   end
   
   vlc.msg.dbg("[VLsub] Subtitles files: "..target)
-  
-  -- Unzipped data into file target 
+
+  -- Unzipped data into file target
     
   local stream = vlc.stream(tmpFileURI)
   local data = ""
@@ -1840,17 +1977,19 @@ function download_subtitles(index)
   stream = nil
   collectgarbage()
   
+
   if not os.remove(tmpFileName) then
-    vlc.msg.err("[VLsub] Unable to remove temp: "..tmpFileName)
+     vlc.msg.err("[VLsub] Unable to remove temp: "..tmpFileName)
   end
-    
+  
   -- load subtitles
-  if add_sub(target) then 
+  if add_sub(target) then
     message = success_tag(lang["mess_loaded"]) .. message
   else
     message = error_tag(lang["mess_not_load"]) .. message
   end
-  
+
+    
   setMessage(message)
 end
 
@@ -1859,9 +1998,9 @@ function dump_zip(url, dir, subfileName)
   setMessage(openSub.actionLabel..": "..progressBarContent(0))
   local resp = get(url)
   
-  if not resp then 
+  if not resp then
     setError(lang["mess_no_response"])
-    return false 
+    return false
   end
   
   local tmpFileName = dir..subfileName..".gz"
@@ -1928,8 +2067,8 @@ end
 function get(url)
   local host, path = parse_url(url)
   local header = {
-    "GET "..path.." HTTP/1.1", 
-    "Host: "..host, 
+    "GET "..path.." HTTP/1.1",
+    "Host: "..host,
     "User-Agent: "..openSub.conf.userAgentHTTP,
     "",
     ""
@@ -1939,7 +2078,7 @@ function get(url)
   local response
   local status, response = http_req(host, 80, request)
   
-  if status == 200 then 
+  if status == 200 then
     return response
   else
     return false, status, response
@@ -1988,7 +2127,7 @@ function http_req(host, port, request)
 
   vlc.net.close(fd)
   
-  if status == 301 
+  if status == 301
   and header["Location"] then
     local host, path = parse_url(trim(header["Location"]))
     request = request
@@ -2008,18 +2147,18 @@ function parse_header(data)
     data,
     "([^%s:]+)(:?)%s([^\n]+)\r?\n")
   do
-    if s == "" then 
+    if s == "" then
     header['statuscode'] = tonumber(string.sub(val, 1 , 3))
-    else 
+    else
       header[name] = val
     end
   end
   return header
-end 
+end
 
 function parse_url(url)
   local url_parsed = vlc.net.url_parse(url)
-  return  url_parsed["host"], 
+  return  url_parsed["host"],
     url_parsed["path"],
     url_parsed["option"]
 end
@@ -2036,7 +2175,7 @@ function parse_xml(data)
   local resolve_xml =  vlc.strings.resolve_xml_special_chars
 
   for op, tag, p, empty, val in string.gmatch(
-    data, 
+    data,
     "[%s\r\n\t]*<(%/?)([%w:_]+)(.-)(%/?)>"..
     "[%s\r\n\t]*([^<]*)[%s\r\n\t]*"
   ) do
@@ -2094,7 +2233,7 @@ function parse_xmlrpc(data)
   table.insert(stack, tree)
 
   for op, tag, p, empty, val in string.gmatch(
-    data, 
+    data,
     "<(%/?)([%w:]+)(.-)(%/?)>[%s\r\n\t]*([^<]*)"
   ) do
     if op=="/" then
@@ -2104,7 +2243,7 @@ function parse_xmlrpc(data)
           table.remove(stack)
         end
       end
-    elseif tag == "name" then 
+    elseif tag == "name" then
       level = level + 1
       if val~= "" then tmpTag  = resolve_xml(val) end
       
@@ -2131,7 +2270,7 @@ function parse_xmlrpc(data)
       tmp = {}
       table.insert(stack[level], tmp)
       table.insert(stack, tmp)
-    elseif val ~= "" then 
+    elseif val ~= "" then
       stack[level][tmpTag] = resolve_xml(val)
     end
   end
@@ -2155,7 +2294,7 @@ function dump_xml(data)
     for k,v in pairs(data) do
       table.insert(data_index, {k, v})
       table.sort(data_index, function(a, b)
-        return a[1] < b[1] 
+        return a[1] < b[1]
       end)
     end
     
@@ -2166,7 +2305,7 @@ function dump_xml(data)
         dump = dump.."\r\n"..string.rep(
           " ",
           level)..
-          "<"..k..">"	
+          "<"..k..">"
         table.insert(stack, k)
         level = level + 1
       elseif type(k)=="number" and k ~= 1 then
@@ -2223,7 +2362,7 @@ function make_uri(str)
   local encode_uri = vlc.strings.encode_uri_component
   local encodedPath = ""
   for w in string.gmatch(str, "/([^/]+)") do
-    encodedPath = encodedPath.."/"..encode_uri(w) 
+    encodedPath = encodedPath.."/"..encode_uri(w)
   end
     
   if windowdrive then
@@ -2234,38 +2373,38 @@ function make_uri(str)
 end
 
 function file_touch(name) -- test write ability
-  if not name or trim(name) == "" 
+  if not name or trim(name) == ""
   then return false end
   
   local f=io.open(name ,"w")
-  if f~=nil then 
-    io.close(f) 
-    return true 
-  else 
-    return false 
+  if f~=nil then
+    io.close(f)
+    return true
+  else
+    return false
   end
 end
 
 function file_exist(name) -- test readability
-  if not name or trim(name) == "" 
+  if not name or trim(name) == ""
   then return false end
   local f=io.open(name ,"r")
-  if f~=nil then 
-    io.close(f) 
-    return true 
-  else 
-    return false 
+  if f~=nil then
+    io.close(f)
+    return true
+  else
+    return false
   end
 end
 
 function is_dir(path)
-  if not path or trim(path) == "" 
+  if not path or trim(path) == ""
   then return false end
   -- Remove slash at the end or it won't work on Windows
   path = string.gsub(path, "^(.-)[\\/]?$", "%1")
   local f, _, code = io.open(path, "rb")
   
-  if f then 
+  if f then
     _, _, code = f:read("*a")
     f:close()
     if code == 21 then
@@ -2279,9 +2418,9 @@ function is_dir(path)
 end
 
 function list_dir(path)
-  if not path or trim(path) == "" 
+  if not path or trim(path) == ""
   then return false end
-  local dir_list_cmd 
+  local dir_list_cmd
   local list = {}
   if not is_dir(path) then return false end
   
@@ -2304,7 +2443,7 @@ function list_dir(path)
 end
 
 function mkdir_p(path)
-  if not path or trim(path) == "" 
+  if not path or trim(path) == ""
   then return false end
   if openSub.conf.os == "win" then
     os.execute('mkdir "' .. path..'"')
@@ -2323,7 +2462,7 @@ function is_window_path(path)
 end
 
 function is_win_safe(path)
-  if not path or trim(path) == "" 
+  if not path or trim(path) == ""
   or not is_window_path(path)
   then return false end
   return string.match(path, "^%a?%:?[\\%w%p%s§¤]+$")
@@ -2337,3 +2476,37 @@ end
 function remove_tag(str)
   return string.gsub(str, "{[^}]+}", "")
 end
+
+
+-- Basic Utilities
+function joinTables(t1, t2)
+ 
+  if t1 == nil then     
+    return t2
+  end
+  
+  for k,v in pairs(t2) do
+      t1[k]=v
+  end 
+    
+  return t1
+
+end
+
+--[[ rPrint(struct, [limit], [indent])   Recursively print arbitrary data. 
+	Set limit (default 100) to stanch infinite loops.
+	Indents tables as [KEY] VALUE, nested tables as [KEY] [KEY]...[KEY] VALUE
+	Set indent ("") to prefix each line:    Mytable [KEY] [KEY]...[KEY] VALUE
+--]]
+function printTable(s, l, i) -- recursive Print (structure, limit, indent)
+	l = (l) or 100; i = i or "";	-- default item limit, indent string
+	if (l<1) then vlc.msg.info("ERROR: Item limit reached."); return l-1 end;
+	local ts = type(s);
+	if (ts ~= "table") then vlc.msg.info(i,ts,s); return l-1 end
+    vlc.msg.info(i,ts);           -- print "table"
+	for k,v in pairs(s) do  -- print "[KEY] VALUE"
+		l = printTable(v, l, i.."\t["..tostring(k).."]");
+		if (l < 0) then break end
+	end
+	return l
+end	
