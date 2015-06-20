@@ -96,64 +96,7 @@ local options = {
     int_vlsub_work_dir = 'VLSub working directory',
     int_os_username = 'Username',
     int_os_password = 'Password',
-    int_help_mess =[[
-      Download subtitles from
-      <a href='http://www.opensubtitles.org/'>
-      opensubtitles.org
-      </a> and display them while watching a video.<br>
-      <br>
-      <b><u>Usage:</u></b><br>
-      <br>
-      Start your video. If you use Vlsub witout playing a video
-      you will get a link to download the subtitles in your browser
-      but the subtitles won't be saved and loaded automatically.<br>
-      <br>
-      Choose the language for your subtitles and click on the
-      button corresponding to one of the two research methods
-      provided by VLSub:<br>
-      <br>
-      <b>Method 1: Search by hash</b><br>
-      It is recommended to try this method first, because it
-      performs a research based on the video file print, so you
-      can find subtitles synchronized with your video.<br>
-      <br>
-      <b>Method 2: Search by name</b><br>
-      If you have no luck with the first method, just check the
-      title is correct before clicking. If you search subtitles
-      for a series, you can also provide a season and episode
-      number.<br>
-      <br>
-      <b>Downloading Subtitles</b><br>
-      Select one subtitle in the list and click on 'Download'.<br>
-      It will be put in the same directory that your video, with
-      the same name (different extension)
-      so VLC will load them automatically the next time you'll
-      start the video.<br>
-      <br>
-      <b>/!\\ Beware :</b> Existing subtitles are overwritten
-      without asking confirmation, so put them elsewhere if
-      they're important.<br>
-      <br>
-      Find more VLC extensions at
-      <a href='http://addons.videolan.org'>addons.videolan.org</a>.
-      ]],
-    int_no_support_mess = [[
-      <strong>VLSub is not working with Vlc 2.1.x on
-      any platform</strong>
-      because the lua "net" module needed to interact
-      with opensubtitles has been
-      removed in this release for the extensions.
-      <br>
-      <strong>Works with Vlc 2.2 on mac and linux.</strong>
-      <br>
-      <strong>On windows you have to install an older version
-      of Vlc (2.0.8 for example)</strong>
-      to use Vlsub:
-      <br>
-      <a target="_blank" rel="nofollow"
-      href="http://download.videolan.org/pub/videolan/vlc/2.0.8/">
-      http://download.videolan.org/pub/videolan/vlc/2.0.8/</a><br>
-    ]],
+    int_help_mess =[['bla']],
   
     action_login = 'Logging in',
     action_logout = 'Logging out',
@@ -1789,9 +1732,11 @@ function doAll()
     searchIMBD()
 
     vlc.msg.info('Download start ')
+    
     download_best()
     
-    close()
+    close_dlg()
+    --close()
 end
 
 function loadLangPrefs ()
@@ -1830,6 +1775,10 @@ function download_best()
     local hd = isHd(title)
     local blu = fhd or hd
 
+    if ( openSub.itemStore == nil ) then
+      vlc.osd.message("Just Sub It - No subtitles were found")
+      return
+    end
     local found_subs_count = #(openSub.itemStore)
     
     local max_subs = math.min(options.numToAutoDownload, found_subs_count)
@@ -1872,20 +1821,27 @@ function matchHD(item, fhd, hd)
     end
 end
 
+--[[
+-- Currently VLC chooses what name to display in the subtitle menu by this rule:
+ - Find the before last dot, and display that info. Supposedly it is supposed to be language.
+ - I'm going to abuse this to display the whole name, which is what many would have expected in the first place.
+ ]]
 function pickNameForSubFile (item)
-  local subfileName = item.SubFileName or ""
 
-  subfileName = string.gsub(subfileName, '\.'.. item.SubFormat ..'$',"") -- Remove extension
+  local nameWIthoutExt = string.gsub(item.SubFileName, '\.'.. item.SubFormat ..'$',"") -- Remove extension
 
-  subfileName = string.gsub(subfileName, '%W','_') -- Remove weird characters vlc might refuse in subfile name
+  local safeName = string.gsub(nameWIthoutExt, '%W','_') -- Remove weird characters vlc might refuse in subfile name
 
 --  subfileName = openSub.file.name .. "_".. subfileName
 
-  if openSub.option.langExt then
-    subfileName = subfileName.."."..item.SubLanguageID
+  local subfileName = "_." .. safeName;
+
+  -- Only add langugage if it isn't already somewhere in the file name (This is actullay too smart, it would probably be better if in non trivial cases we appeneded the language to the end for ease, but I workd too much time on this so it shall remain at least for a little while)
+  if  nil == string.match(subfileName:lower(), "%f[%a]".. item.SubLanguageID .."%f[%A]") then
+    subfileName = subfileName.."_"..item.SubLanguageID
   end
 
-  subfileName = subfileName.."."..item.SubFormat
+  subfileName = subfileName .."."..item.SubFormat
 
   return subfileName
 end
@@ -2480,18 +2436,23 @@ end
 
 -- Basic Utilities
 function joinTables(t1, t2)
- 
-  if t1 == nil then     
+
+  if t1 == nil then
     return t2
   end
-  
+
   for k,v in pairs(t2) do
       t1[k]=v
-  end 
-    
+  end
+
   return t1
 
 end
+
+function info(whatever)
+  vlc.msg.info(tostring(whatever))
+end
+
 
 --[[ rPrint(struct, [limit], [indent])   Recursively print arbitrary data. 
 	Set limit (default 100) to stanch infinite loops.
